@@ -8,9 +8,42 @@ datasource db {
   provider = "postgresql"
 }
 
-model User{
-  id              String          @id @default(uuid())
-  name            String
-  email           String          @unique
-  password        String
+
+model User {
+  id                    String         @id @default(uuid()) @db.Uuid
+  name                  String
+  email                 String         @unique
+  password              String
+
+  sentNotifications     Notification[] @relation("SentNotifications")
+  receivedNotifications Notification[] @relation("ReceivedNotifications")
 }
+
+
+enum NotificationType {
+  FOLLOW
+  LIKE
+  COMMENT
+  MESSAGE
+  FRIEND_REQUEST
+  SYSTEM
+}
+
+
+model Notification {
+  id         String           @id @default(uuid()) @db.Uuid
+  senderId   String?          @db.Uuid
+  receiverId String           @db.Uuid
+  type       NotificationType
+  message    String
+  isRead     Boolean          @default(false)
+  createdAt  DateTime         @default(now())
+  readAt     DateTime?
+
+  sender     User?            @relation("SentNotifications", fields: [senderId], references: [id], onDelete: SetNull)
+  receiver   User             @relation("ReceivedNotifications", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@index([receiverId, createdAt])
+  @@index([receiverId, isRead])
+}
+
