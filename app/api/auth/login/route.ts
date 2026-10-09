@@ -1,6 +1,7 @@
 import { prisma } from "@/app/lib/db";
 import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
+import jwt from 'jsonwebtoken'
 
 export async function POST(req: NextRequest){
     try {
@@ -29,10 +30,15 @@ export async function POST(req: NextRequest){
                 msg: "Incorrect Password"
             }, {status: 400})
         }
+        const jwtSecret = process.env.JWT_SECRET!;
+
+        const token = jwt.sign({
+            id: findUser.id
+        }, jwtSecret)
 
         return NextResponse.json({
             msg: "USer logged in successfully",
-            findUser
+            token
         }, {status: 200})
     } catch (error) {
         console.error(error)
