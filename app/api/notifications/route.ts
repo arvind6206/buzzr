@@ -16,6 +16,54 @@ const notificationSchema = z.object({
   message: z.string().trim().min(1).max(500),
 });
 
+export async function GET(req: NextRequest) {
+  try {
+    const userId = await getUserId(req);
+    if (!userId) {
+      return NextResponse.json(
+        {
+          msg: "Unauthorized",
+        },
+        { status: 401 },
+      );
+    }
+
+    const { searchParams } = new URL(req.url);
+    const unreadOnly = searchParams.get("unreadOnly") === "true";
+
+    const notifications = await prisma.notification.findMany({
+      where: {
+        receiverId: userId,
+        ...(unreadOnly ? { isRead: false } : {}),
+      },
+      include: {
+        sender: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return NextResponse.json({
+      notifications,
+    });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(
+      {
+        msg: "Internal Server Error",
+      },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const senderId = await getUserId(req);
